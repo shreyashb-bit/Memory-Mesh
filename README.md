@@ -28,69 +28,69 @@ Traditional AI systems often retain user data indefinitely, making compliance wi
 
 # Repository Structure
 
-MemoryMesh/
-│
-├── backend/
-│   ├── rag_core/                 # Team 1
-│   │   ├── rag_core.py
-│   │   ├── test_deletion.py
-│   │   └── notebooks/
-│   │       └── rag_core_demo.ipynb
-│   │
-│   ├── unlearning/               # Team 2
-│   │   ├── sisa_unlearn.py
-│   │   ├── unlearn_api.proto
-│   │   └── benchmarks/
-│   │       └── benchmark_report.csv
-│   │
-│   ├── audit/                    # Team 3
-│   │   ├── merkle_log.py
-│   │   ├── audit_api.py
-│   │   ├── sample_proof.json
-│   │   ├── tests/
-│   │   └── docs/
-│   │
-│   ├── api/                      # Team 4
-│   │   ├── main.py
-│   │   ├── auth.py
-│   │   ├── routes/
-│   │   └── middleware/
-│   │
-│   └── shared/
-│       ├── config.py
-│       ├── logger.py
-│       └── utils.py
-│
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   └── package.json
-│
-├── docs/
-│   ├── architecture/
-│   │   ├── system_design.md
-│   │   ├── data_flow.md
-│   │   └── threat_model.md
-│   │
-│   ├── compliance/
-│   │   └── compliance_checklist.md
-│   │
-│   └── diagrams/
-│
-├── tests/
-│   ├── integration/
-│   └── e2e/
-│
-├── scripts/
-│   ├── setup.sh
-│   └── start_dev.sh
-│
-├── .github/
-│   └── workflows/
-│       ├── backend-ci.yml
-│       └── frontend-ci.yml
-│
-├── .gitignore
-├── README.md
-├── requirements.txt
-└── docker-compose.yml
+      MemoryMesh/
+      │
+      ├── backend/
+      │   ├── rag_core/                 
+      │   │   ├── rag_core.py
+      │   │   ├── test_deletion.py
+      │   │   └── notebooks/
+      │   │       └── rag_core_demo.ipynb
+      │   │
+      │   ├── unlearning/               
+      │   │   ├── sisa_unlearn.py
+      │   │   ├── unlearn_api.proto
+      │   │   └── benchmarks/
+      │   │       └── benchmark_report.csv
+      │   │
+      │   ├── audit/                   
+      │   │   ├── merkle_log.py
+      │   │   ├── audit_api.py
+      │   │   ├── sample_proof.json
+      │   │   ├── tests/
+      │   │   └── docs/
+      │   │
+      │   ├── api/                      
+      │   │   ├── main.py
+      │   │   ├── auth.py
+      │   │   ├── routes/
+      │   │   └── middleware/
+      │   │
+      │   └── shared/
+      │       ├── config.py
+      │       ├── logger.py
+      │       └── utils.py
+      │
+      ├── frontend/
+      │   ├── src/
+      │   ├── public/
+      │   └── package.json
+      │
+      ├── docs/
+      │   ├── architecture/
+      │   │   ├── system_design.md
+      │   │   ├── data_flow.md
+      │   │   └── threat_model.md
+      │   │
+      │   ├── compliance/
+      │   │   └── compliance_checklist.md
+      │   │
+      │   └── diagrams/
+      │
+      ├── tests/
+      │   ├── integration/
+      │   └── e2e/
+      │
+      ├── scripts/
+      │   ├── setup.sh
+      │   └── start_dev.sh
+      │
+      ├── .github/
+      │   └── workflows/
+      │       ├── backend-ci.yml
+      │       └── frontend-ci.yml
+      │
+      ├── .gitignore
+      ├── README.md
+      ├── requirements.txt
+      └── docker-compose.yml
