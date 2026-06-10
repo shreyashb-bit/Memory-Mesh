@@ -1,6 +1,5 @@
 """
 rag_core.py — MemoryMesh Secure In-Memory RAG Core
-====================================================
 
 Responsibilities implemented:
   1. Llama-3 inference via HuggingFace Transformers (+ lightweight stub for CI)
@@ -48,6 +47,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 logger = logging.getLogger("memorymesh.rag_core")
 
 # ---------------------------------------------------------------------------
