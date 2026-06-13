@@ -1,1 +1,234 @@
 #
+// unlearn_api.proto
+// =================
+// MemoryMesh — Machine Unlearning gRPC API
+//
+// Provides machine-unlearning operations for GDPR Article 17,
+// EU AI Act, and India DPDP Act compliance.
+//
+// Compile with:
+//
+// python -m grpc_tools.protoc \
+//   -I. \
+//   --python_out=. \
+//   --grpc_python_out=. \
+//   unlearn_api.proto
+
+syntax = "proto3";
+
+package memorymesh.unlearn.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_package = "com.memorymesh.unlearn.v1";
+option java_outer_classname = "UnlearnApiProto";
+option go_package = "memorymesh/unlearn/v1;unlearnv1";
+
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum ForgetStatus {
+  FORGET_STATUS_UNSPECIFIED = 0;
+  FORGET_STATUS_COMPLETED = 1;
+  FORGET_STATUS_QUEUED = 2;
+  FORGET_STATUS_IN_PROGRESS = 3;
+  FORGET_STATUS_NO_DATA = 4;
+  FORGET_STATUS_FAILED = 5;
+}
+
+enum ShardStatus {
+  SHARD_STATUS_UNSPECIFIED = 0;
+  SHARD_STATUS_SUCCESS = 1;
+  SHARD_STATUS_FAILED = 2;
+  SHARD_STATUS_SKIPPED = 3;
+}
+
+
+// ─────────────────────────────────────────────
+// UnlearnService
+// ─────────────────────────────────────────────
+
+service UnlearnService {
+
+  // Triggers machine unlearning for a user.
+  rpc Forget(ForgetRequest) returns (ForgetResponse);
+
+  // Poll status of async unlearning jobs.
+  rpc ForgetStatus(ForgetStatusRequest)
+      returns (ForgetStatusResponse);
+
+  // Audit endpoint showing which shards contain user data.
+  // Should be restricted to admin/audit roles.
+  rpc ListUserShards(ListUserShardsRequest)
+      returns (ListUserShardsResponse);
+
+  // Kubernetes liveness/readiness probe.
+  rpc HealthCheck(HealthCheckRequest)
+      returns (HealthCheckResponse);
+}
+
+
+// ─────────────────────────────────────────────
+// Forget
+// ─────────────────────────────────────────────
+
+message ForgetRequest {
+
+  // Privacy-preserving user identifier.
+  // Recommended: SHA-256 hash generated before transmission.
+  string user_hash = 1;
+
+  // GDPR Art.17, DPDP §12, etc.
+  string legal_basis = 2;
+
+  // Prevent duplicate requests.
+  string idempotency_key = 3;
+
+  // Return immediately and execute in background.
+  bool async_mode = 4;
+}
+
+
+message ForgetResponse {
+
+  // Unique operation identifier.
+  string operation_id = 1;
+
+  ForgetStatus status = 2;
+
+  google.protobuf.Timestamp completed_at = 3;
+
+  repeated ShardUnlearnResult shard_results = 4;
+
+  UnlearnSummary summary = 5;
+
+  // Populated when async_mode=true.
+  string job_id = 6;
+
+  // Root hash of immutable audit log.
+  string audit_merkle_root = 7;
+
+  // Merkle inclusion proof.
+  repeated string merkle_proof = 8;
+
+  // Human-readable error details.
+  string error_message = 9;
+}
+
+
+// ─────────────────────────────────────────────
+// Per-Shard Results
+// ─────────────────────────────────────────────
+
+message ShardUnlearnResult {
+
+  int32 shard_id = 1;
+
+  double accuracy_before = 2;
+
+  double accuracy_after = 3;
+
+  double accuracy_delta = 4;
+
+  int32 samples_removed = 5;
+
+  double retrain_duration_sec = 6;
+
+  ShardStatus shard_status = 7;
+
+  string error_message = 8;
+}
+
+
+// ─────────────────────────────────────────────
+// Aggregate Metrics
+// ─────────────────────────────────────────────
+
+message UnlearnSummary {
+
+  int32 total_shards_affected = 1;
+
+  int32 total_samples_removed = 2;
+
+  double total_retrain_time_sec = 3;
+
+  double overall_accuracy_delta = 4;
+
+  double overall_accuracy_before = 5;
+
+  double overall_accuracy_after = 6;
+}
+
+
+// ─────────────────────────────────────────────
+// Async Job Status
+// ─────────────────────────────────────────────
+
+message ForgetStatusRequest {
+  string job_id = 1;
+}
+
+message ForgetStatusResponse {
+
+  string job_id = 1;
+
+  ForgetStatus status = 2;
+
+  // Percentage complete (0–100).
+  int32 progress = 3;
+
+  google.protobuf.Timestamp updated_at = 4;
+
+  // Present when completed.
+  ForgetResponse result = 5;
+
+  int32 affected_shards = 6;
+
+  int32 completed_shards = 7;
+
+  string error_message = 8;
+}
+
+
+// ─────────────────────────────────────────────
+// User → Shard Provenance
+// ─────────────────────────────────────────────
+
+message ListUserShardsRequest {
+
+  // Same hashed identifier used in ForgetRequest.
+  string user_hash = 1;
+}
+
+message ListUserShardsResponse {
+  repeated ShardProvenance shards = 1;
+}
+
+message ShardProvenance {
+
+  int32 shard_id = 1;
+
+  int32 slice_id = 2;
+
+  int32 sample_count = 3;
+
+  google.protobuf.Timestamp recorded_at = 4;
+}
+
+
+// ─────────────────────────────────────────────
+// Health Check
+// ─────────────────────────────────────────────
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+
+  bool ok = 1;
+
+  string version = 2;
+
+  string service_name = 3;
+}
