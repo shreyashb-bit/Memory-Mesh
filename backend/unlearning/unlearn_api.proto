@@ -1,1 +1,153 @@
-#
+// unlearn_api.proto
+// =================
+// MemoryMesh — Machine Unlearning gRPC API
+//
+// Provides a /forget endpoint for GDPR Article 17 / India DPDP Act § 12
+// "Right to be Forgotten" compliance.
+//
+// Compile with:
+//   python -m grpc_tools.protoc \
+//       -I. \
+//       --python_out=. \
+//       --grpc_python_out=. \
+//       unlearn_api.proto
+
+syntax = "proto3";
+
+package memorymesh.unlearn.v1;
+
+option java_package = "com.memorymesh.unlearn.v1";
+option java_outer_classname = "UnlearnApiProto";
+option go_package = "memorymesh/unlearn/v1;unlearnv1";
+
+// ─────────────────────────────────────────────
+// UnlearnService
+// ─────────────────────────────────────────────
+service UnlearnService {
+
+  // Forget — triggers SISA selective retrain to erase all user data
+  // from affected model shards.
+  // Maps to HTTP POST /forget?user_id=X  (via grpc-gateway)
+  rpc Forget (ForgetRequest) returns (ForgetResponse);
+
+  // ForgetStatus — poll an async forget job (for large models)
+  rpc ForgetStatus (ForgetStatusRequest) returns (ForgetStatusResponse);
+
+  // ListUserShards — audit which shards hold a user's data (read-only)
+  rpc ListUserShards (ListUserShardsRequest) returns (ListUserShardsResponse);
+
+  // HealthCheck — liveness probe for k8s
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+
+// ─────────────────────────────────────────────
+// Forget
+// ─────────────────────────────────────────────
+message ForgetRequest {
+  // Unique user identifier — hashed server-side before any storage.
+  string user_id = 1;
+
+  // Optional: legal basis for the deletion request (GDPR Art.17 / DPDP § 12)
+  string legal_basis = 2;
+
+  // Optional: caller-supplied idempotency key to prevent duplicate retrains.
+  string idempotency_key = 3;
+
+  // If true, run forget asynchronously and return a job_id immediately.
+  bool async_mode = 4;
+}
+
+message ForgetResponse {
+  // Unique ID for this forget operation (for audit logs / Merkle proof)
+  string operation_id = 1;
+
+  ForgetStatus status = 2;
+
+  // ISO-8601 UTC timestamp when the forget completed (or was enqueued)
+  string completed_at = 3;
+
+  // Per-shard results
+  repeated ShardUnlearnResult shard_results = 4;
+
+  // Aggregate stats
+  UnlearnSummary summary = 5;
+
+  // If async_mode=true, callers should poll ForgetStatus with this job_id
+  string job_id = 6;
+
+  // Merkle root of the immutable audit log entry (for cryptographic proof)
+  string audit_merkle_root = 7;
+}
+
+enum ForgetStatus {
+  FORGET_STATUS_UNSPECIFIED  = 0;
+  FORGET_STATUS_COMPLETED    = 1;
+  FORGET_STATUS_QUEUED       = 2;
+  FORGET_STATUS_IN_PROGRESS  = 3;
+  FORGET_STATUS_NO_DATA      = 4;   // user_id had no data in any shard
+  FORGET_STATUS_FAILED       = 5;
+}
+
+message ShardUnlearnResult {
+  int32  shard_id              = 1;
+  double accuracy_before       = 2;   // 0.0 – 1.0
+  double accuracy_after        = 3;
+  double accuracy_delta        = 4;   // after − before (negative = expected)
+  int32  samples_removed       = 5;
+  double retrain_duration_sec  = 6;
+  string shard_status          = 7;   // "success" | "failed" | "skipped"
+}
+
+message UnlearnSummary {
+  int32  total_shards_affected  = 1;
+  int32  total_samples_removed  = 2;
+  double total_retrain_time_sec = 3;
+  double overall_accuracy_delta = 4;
+}
+
+
+// ─────────────────────────────────────────────
+// ForgetStatus (async polling)
+// ─────────────────────────────────────────────
+message ForgetStatusRequest {
+  string job_id = 1;
+}
+
+message ForgetStatusResponse {
+  string      job_id      = 1;
+  ForgetStatus status     = 2;
+  int32        progress   = 3;   // 0-100 (% of affected shards retrained)
+  string       updated_at = 4;
+  ForgetResponse result   = 5;   // populated once status = COMPLETED
+}
+
+
+// ─────────────────────────────────────────────
+// ListUserShards (audit / read-only)
+// ─────────────────────────────────────────────
+message ListUserShardsRequest {
+  string user_id = 1;
+}
+
+message ListUserShardsResponse {
+  repeated ShardProvenance shards = 1;
+}
+
+message ShardProvenance {
+  int32  shard_id      = 1;
+  int32  slice_id      = 2;
+  int32  sample_count  = 3;
+  string recorded_at   = 4;   // ISO-8601 UTC
+}
+
+
+// ─────────────────────────────────────────────
+// HealthCheck
+// ─────────────────────────────────────────────
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool   ok      = 1;
+  string version = 2;
+}
